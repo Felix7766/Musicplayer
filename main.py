@@ -9,10 +9,12 @@ import pygame
 import os
 import cloudmusic
 import requests as rq
-
+import download_tool
+import download_tool
 
 class Gui:
     def __init__(self):
+        self.downloader=download_tool.MusicDownloader()
         self.ui = QUiLoader().load('UI.ui')
         self.ui.setWindowIcon(QIcon('music.ico'))
         self.ui.ButtonOpen.clicked.connect(self.opendir)
@@ -24,6 +26,10 @@ class Gui:
         self.ui.outList.clicked.connect(self.click)
         self.ui.printList.clicked.connect(self.clickdownload)
         self.ui.ButtonRandom.clicked.connect(self.BRand)
+
+        # 测试
+        self.ui.ButtonTest.clicked.connect(self.Test)
+
         self.file = ''
         self.dir = ''
         self.res = []
@@ -40,13 +46,27 @@ class Gui:
         self.cloud = 'https://music.163.com/song/media/outer/url?id='
         pygame.mixer.init()
 
+    # 测试
+    def Test(self):
+        print("test success")
+
     # 下载音乐
     def download(self):
         name = self.ui.idSearch.text()
-        self.playlist = cloudmusic.search(name)
-        musiclist = []
-        for music in self.playlist:
-            musiclist.append(music.name + ' ' + music.artist[0] + '.mp3')
+        # self.downloader.search_and_download(name)
+
+        # 搜索音乐
+        self.playlist = self.downloader.get_list(name)
+
+        # self.downloader.release_resources()
+
+        # download_tool.download(name)
+
+
+        # self.playlist = cloudmusic.search(name)
+        musiclist = self.playlist
+        # for music in self.playlist:
+        #     musiclist.append(music)
         list_model = QStringListModel()
         list_model.setStringList(musiclist)
         self.ui.printList.setModel(list_model)
@@ -55,12 +75,18 @@ class Gui:
         num = index.row()
         music = self.playlist[num]
         try:
-            url = self.cloud + music.id + '.mp3'
-            tmp = rq.get(url, headers=self.headers)
-            tmp.raise_for_status()
-            self.ui.stateEdit.setText('Successful')
-            with open(f'cloudmusic/{music.artist[0]}-{music.name}.mp3', 'wb') as f:
-                f.write(tmp.content)
+            flag=self.downloader.search_and_download(music)
+            self.downloader.release_resources()
+            if flag>0:
+                self.ui.stateEdit.setText('Success')
+            else:
+                self.ui.stateEdit.setText('Failure')
+            # url = self.cloud + music.id + '.mp3'
+            # tmp = rq.get(url, headers=self.headers)
+            # tmp.raise_for_status()
+            # self.ui.stateEdit.setText('Successful')
+            # with open(f'cloudmusic/{music.artist[0]}-{music.name}.mp3', 'wb') as f:
+            #     f.write(tmp.content)
         except:
             self.ui.stateEdit.setText('Failure')
 
